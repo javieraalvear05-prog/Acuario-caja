@@ -1,0 +1,484 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  LayoutGrid, 
+  History, 
+  ShoppingCart, 
+  Search, 
+  Plus, 
+  Trash2, 
+  DollarSign, 
+  X, 
+  CheckCircle2, 
+  Clock,
+  Ticket,
+  Gift,
+  Printer,
+  Minus,
+  CreditCard,
+  Banknote,
+  BarChart3,
+  ChevronRight,
+  Utensils,
+  Waves,
+  Anchor,
+  Compass,
+  MessageCircle,
+  Users
+} from 'lucide-react';
+
+/**
+ * CONFIGURACIÓN DE PRODUCTOS - ACUARIO VALPARAÍSO
+ */
+const INITIAL_PRODUCTS = [
+  { id: 1, name: "Entrada General Adulto", price: 4900, category: "Entradas", color: "bg-sky-50", icon: Ticket },
+  { id: 2, name: "Entrada Niño (2-12 años)", price: 3900, category: "Entradas", color: "bg-sky-50", icon: Ticket },
+  { id: 3, name: "Adulto Mayor (60+)", price: 3900, category: "Entradas", color: "bg-sky-50", icon: Ticket },
+  { id: 4, name: "Entrada Convenio BCI", price: 3675, category: "Entradas", color: "bg-cyan-50", icon: Ticket },
+  { id: 5, name: "Peluche Tiburón Blanco XL", price: 12000, category: "Zoovenir", color: "bg-blue-50", icon: Gift },
+  { id: 6, name: "Gorra Acuario Valpo", price: 6500, category: "Zoovenir", color: "bg-blue-50", icon: Gift },
+  { id: 11, name: "Combo Fish & Chips", price: 7500, category: "Comida", color: "bg-teal-50", icon: Utensils },
+  { id: 13, name: "Bebida Océano 500ml", price: 2000, category: "Comida", color: "bg-teal-50", icon: Utensils },
+];
+
+const GUIDES = ["Guía Marina", "Guía Sebastián", "Guía Javiera", "Guía Rodrigo", "Guía Ignacia"];
+
+const App = () => {
+  const [currentView, setCurrentView] = useState('pos');
+  const [activeCategory, setActiveCategory] = useState('Todas');
+  const [cart, setCart] = useState([]);
+  const [salesHistory, setSalesHistory] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('efectivo');
+  const [cashReceived, setCashReceived] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Estado para Recorridos Guiados
+  const [selectedGuide, setSelectedGuide] = useState('');
+  const [tourHistory, setTourHistory] = useState([]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const filteredProducts = INITIAL_PRODUCTS.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = activeCategory === 'Todas' || p.category === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+  const productSalesReport = useMemo(() => {
+    const report = {};
+    INITIAL_PRODUCTS.forEach(p => {
+      report[p.id] = { ...p, soldCount: 0, totalRevenue: 0 };
+    });
+    salesHistory.forEach(sale => {
+      sale.items.forEach(item => {
+        if (report[item.id]) {
+          report[item.id].soldCount += item.quantity;
+          report[item.id].totalRevenue += (item.price * item.quantity);
+        }
+      });
+    });
+    return Object.values(report).sort((a, b) => b.soldCount - a.soldCount);
+  }, [salesHistory]);
+
+  const addToCart = (product) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) {
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { ...product, quantity: 1 }];
+    });
+  };
+
+  const updateQuantity = (id, delta) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQty = item.quantity + delta;
+        return newQty > 0 ? { ...item, quantity: newQty } : item;
+      }
+      return item;
+    }).filter(item => item.quantity > 0));
+  };
+
+  const removeFromCart = (id) => {
+    setCart(prev => prev.filter(item => item.id !== id));
+  };
+
+  const finalizeSale = () => {
+    const newSale = {
+      id: `AV-${Date.now().toString().slice(-6)}`,
+      time: new Date().toLocaleTimeString(),
+      items: [...cart],
+      total: total,
+      method: paymentMethod,
+    };
+    setSalesHistory([newSale, ...salesHistory]);
+    setCart([]);
+    setIsCheckoutOpen(false);
+  };
+
+  // --- Lógica de Recorridos Guiados con Redondeo a 5 min ---
+  const handleCreateTour = () => {
+    if (!selectedGuide) return;
+
+    const now = new Date();
+    const minutes = now.getMinutes();
+    
+    // Redondear minutos actuales al múltiplo de 5 más cercano
+    const roundedMinutes = Math.round(minutes / 5) * 5;
+    
+    const baseDate = new Date(now);
+    baseDate.setMinutes(roundedMinutes);
+    baseDate.setSeconds(0);
+    baseDate.setMilliseconds(0);
+
+    // Sumar 15 minutos al tiempo redondeado
+    const tourDate = new Date(baseDate.getTime() + 15 * 60000);
+    const tourTime = tourDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const newTour = {
+      id: Date.now(),
+      guide: selectedGuide,
+      time: tourTime,
+      created: now.toLocaleTimeString()
+    };
+
+    setTourHistory([newTour, ...tourHistory]);
+
+    const message = `🌊 *Acuario Valparaíso*: Se ha programado un nuevo recorrido guiado.\n\n👤 *Guía*: ${selectedGuide}\n⏰ *Hora de inicio*: ${tourTime}\n📍 Favor presentarse en el punto de encuentro 5 minutos antes.`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+  };
+
+  const formatMoney = (val) => {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(val);
+  };
+
+  return (
+    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
+      
+      {/* SIDEBAR */}
+      <aside className="w-24 lg:w-64 bg-[#001d3d] text-white flex flex-col shrink-0 transition-all border-r border-blue-900">
+        <div className="p-6 mb-8 flex items-center gap-3">
+          <div className="bg-sky-500 p-2 rounded-xl text-white shadow-lg">
+            <Waves size={24} />
+          </div>
+          <div className="hidden lg:block">
+            <h1 className="font-black text-sm uppercase">Acuario</h1>
+            <span className="text-sky-400 font-bold text-[10px] tracking-widest">VALPARAÍSO POS</span>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-2">
+          <button onClick={() => setCurrentView('pos')} className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all ${currentView === 'pos' ? 'bg-sky-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <ShoppingCart size={22} />
+            <span className="font-bold text-sm hidden lg:block">Vender</span>
+          </button>
+          <button onClick={() => setCurrentView('tours')} className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all ${currentView === 'tours' ? 'bg-sky-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <Compass size={22} />
+            <span className="font-bold text-sm hidden lg:block">Recorridos</span>
+          </button>
+          <button onClick={() => setCurrentView('history')} className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all ${currentView === 'history' ? 'bg-sky-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <History size={22} />
+            <span className="font-bold text-sm hidden lg:block">Historial</span>
+          </button>
+          <button onClick={() => setCurrentView('reports')} className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all ${currentView === 'reports' ? 'bg-sky-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <BarChart3 size={22} />
+            <span className="font-bold text-sm hidden lg:block">Reportes</span>
+          </button>
+        </nav>
+
+        <div className="p-6 mt-auto">
+            <div className="bg-blue-900/30 p-4 rounded-2xl flex items-center gap-3 border border-blue-800/50">
+                <Anchor size={18} className="text-sky-400" />
+                <span className="text-[10px] font-black uppercase text-sky-200 hidden lg:block">Muelle Prat</span>
+            </div>
+        </div>
+      </aside>
+
+      {/* MAIN AREA */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
+          <div className="flex items-center gap-2 bg-sky-50 px-4 py-2 rounded-full text-sky-600 border border-sky-100">
+            <Clock size={16} />
+            <span className="text-xs font-bold font-mono uppercase">{currentTime.toLocaleTimeString()}</span>
+          </div>
+          <h2 className="font-black text-slate-400 uppercase text-[10px] tracking-widest hidden md:block">Estación de Trabajo / Valparaíso</h2>
+        </header>
+
+        <div className="flex-1 overflow-hidden">
+          {currentView === 'pos' && (
+            <div className="flex h-full">
+              <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-slate-50/50">
+                <div className="flex justify-between mb-8">
+                  <div className="relative w-80">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input type="text" placeholder="Buscar..." className="w-full pl-12 pr-6 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                  </div>
+                  <div className="flex gap-2 bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
+                    {['Todas', 'Entradas', 'Zoovenir', 'Comida'].map(cat => (
+                      <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${activeCategory === cat ? 'bg-sky-600 text-white' : 'text-slate-400 hover:bg-slate-50'}`}>{cat}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                  {filteredProducts.map(product => (
+                    <button key={product.id} onClick={() => addToCart(product)} className={`${product.color} p-6 rounded-[2.5rem] border-2 border-transparent hover:border-sky-300 transition-all flex flex-col justify-between h-48 text-left group shadow-sm hover:shadow-xl`}>
+                      <div className="bg-white/80 p-2 rounded-xl shadow-sm text-sky-700 w-fit"><product.icon size={20} /></div>
+                      <div>
+                        <p className="text-[9px] font-black uppercase text-sky-400 mb-1">{product.category}</p>
+                        <h3 className="font-extrabold text-slate-800 text-sm mb-1">{product.name}</h3>
+                        <p className="text-sky-700 font-black text-xl">{formatMoney(product.price)}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="w-[420px] bg-white border-l flex flex-col shadow-2xl">
+                <div className="p-6 border-b flex justify-between items-center bg-sky-50/30">
+                  <h2 className="font-black text-xl flex items-center gap-2 text-sky-900 uppercase tracking-tighter"><ShoppingCart size={20} /> Pedido</h2>
+                  <button onClick={() => setCart([])} className="text-[10px] font-black text-red-400 hover:text-red-600 uppercase tracking-widest">Anular Todo</button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                  {cart.map(item => (
+                    <div key={item.id} className="bg-white p-4 rounded-2xl border flex items-center gap-3 shadow-sm hover:border-sky-100 transition-all group">
+                      <div className="flex-1">
+                        <p className="text-sm font-black text-slate-800 leading-tight">{item.name}</p>
+                        <p className="text-[10px] text-sky-400 font-bold uppercase">{formatMoney(item.price)}</p>
+                      </div>
+                      <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-slate-100">
+                        <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center hover:bg-white rounded-lg text-slate-400"><Minus size={14}/></button>
+                        <span className="w-8 text-center text-xs font-black text-slate-700">{item.quantity}</span>
+                        <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 flex items-center justify-center hover:bg-white rounded-lg text-slate-400"><Plus size={14}/></button>
+                      </div>
+                      <div className="text-right flex flex-col items-end">
+                         <p className="font-black text-sky-700 text-sm">{formatMoney(item.price * item.quantity)}</p>
+                         <button onClick={() => removeFromCart(item.id)} className="text-red-300 hover:text-red-500 transition-colors p-1">
+                            <Trash2 size={14} />
+                         </button>
+                      </div>
+                    </div>
+                  ))}
+                  {cart.length === 0 && (
+                     <div className="h-full flex flex-col items-center justify-center text-slate-200 py-20 opacity-40">
+                        <ShoppingCart size={60} className="mb-4" />
+                        <p className="font-black text-[10px] uppercase tracking-widest">Carrito Vacío</p>
+                     </div>
+                  )}
+                </div>
+                <div className="p-8 bg-[#001d3d] text-white rounded-t-[3rem] shadow-2xl">
+                  <div className="flex justify-between items-center mb-6">
+                    <span className="text-xs font-black text-sky-400 uppercase tracking-widest">Total</span>
+                    <span className="text-4xl font-black text-white tracking-tighter">{formatMoney(total)}</span>
+                  </div>
+                  <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0} className="w-full bg-sky-500 text-white py-5 rounded-[2rem] font-black text-xl uppercase tracking-widest disabled:bg-slate-700 active:scale-95 transition-all shadow-lg shadow-sky-500/20">Cobrar</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentView === 'tours' && (
+            <div className="flex-1 p-10 overflow-y-auto bg-sky-50/30 animate-in fade-in duration-500">
+              <div className="max-w-5xl mx-auto">
+                <div className="flex justify-between items-end mb-10">
+                  <div>
+                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Gestión de Recorridos</h2>
+                    <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mt-2">Programación redondeada a 5 minutos</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-[2.5rem] border shadow-sm text-center">
+                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Hora de Inicio Estimada (+15m)</p>
+                    <p className="text-3xl font-black text-sky-600">
+                      {(() => {
+                        const d = new Date(currentTime);
+                        d.setMinutes(Math.round(d.getMinutes() / 5) * 5 + 15);
+                        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      })()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-1 bg-white p-8 rounded-[3rem] border shadow-xl">
+                    <div className="flex items-center gap-3 mb-8">
+                      <div className="bg-sky-100 p-3 rounded-2xl text-sky-600"><Users size={24}/></div>
+                      <h3 className="font-black uppercase text-sm tracking-tight">Nuevo Recorrido</h3>
+                    </div>
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Seleccionar Guía</label>
+                        <div className="grid grid-cols-1 gap-2">
+                          {GUIDES.map(guide => (
+                            <button 
+                              key={guide}
+                              onClick={() => setSelectedGuide(guide)}
+                              className={`p-4 rounded-2xl text-left font-bold text-sm transition-all border-2 ${selectedGuide === guide ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-md' : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'}`}
+                            >
+                              {guide}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button 
+                        onClick={handleCreateTour}
+                        disabled={!selectedGuide}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-[2rem] font-black text-lg shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center gap-3"
+                      >
+                        <MessageCircle size={22} />
+                        NOTIFICAR POR WSP
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-2 space-y-4">
+                    <h3 className="font-black uppercase text-xs tracking-[0.3em] text-slate-400 ml-4 mb-4">Registro de Recorridos</h3>
+                    {tourHistory.length === 0 ? (
+                      <div className="bg-white/50 border-2 border-dashed border-slate-200 rounded-[3rem] p-20 text-center italic text-slate-400">
+                        No hay recorridos programados todavía.
+                      </div>
+                    ) : (
+                      tourHistory.map(tour => (
+                        <div key={tour.id} className="bg-white p-6 rounded-[2.5rem] border shadow-sm flex items-center justify-between group hover:shadow-lg transition-all animate-in slide-in-from-bottom">
+                          <div className="flex items-center gap-6">
+                            <div className="bg-sky-50 text-sky-600 p-4 rounded-3xl font-black text-xl shadow-inner">
+                              {tour.time}
+                            </div>
+                            <div>
+                              <p className="font-black text-slate-800 text-lg leading-none mb-1">{tour.guide}</p>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Inicia en 15 minutos aprox.</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <button className="p-3 bg-slate-100 rounded-xl text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all">
+                                <Printer size={18} />
+                             </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentView === 'history' && (
+            <div className="flex-1 p-10 overflow-y-auto bg-slate-100/50">
+              <div className="max-w-4xl mx-auto">
+                <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-8">Ventas Realizadas</h2>
+                <div className="space-y-4">
+                  {salesHistory.map(sale => (
+                    <div key={sale.id} className="bg-white p-8 rounded-[2.5rem] border shadow-sm flex items-center justify-between hover:border-sky-100 transition-all">
+                      <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center font-black text-xs uppercase">POS</div>
+                        <div>
+                          <p className="text-sm font-black text-slate-800">{sale.id}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">{sale.time} • {sale.method.toUpperCase()}</p>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium truncate max-w-xs italic">{sale.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</p>
+                      <p className="text-2xl font-black text-slate-900">{formatMoney(sale.total)}</p>
+                    </div>
+                  ))}
+                  {salesHistory.length === 0 && (
+                      <div className="text-center py-20 text-slate-400 italic font-bold uppercase">No hay ventas registradas</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentView === 'reports' && (
+            <div className="flex-1 p-10 overflow-y-auto bg-slate-100/50">
+               <div className="max-w-5xl mx-auto">
+                 <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-10">Reporte de Inventario</h2>
+                 <div className="bg-white rounded-[3rem] border shadow-sm overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 border-b">
+                        <tr>
+                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Item</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Cant. Vendida</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Recaudado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {productSalesReport.map(p => (
+                          <tr key={p.id} className={`hover:bg-sky-50 transition-colors ${p.soldCount > 0 ? 'bg-white' : 'opacity-40'}`}>
+                            <td className="px-8 py-5">
+                              <p className="font-black text-slate-800 text-sm uppercase tracking-tight">{p.name}</p>
+                              <span className="text-[9px] font-bold text-sky-400 uppercase">{p.category}</span>
+                            </td>
+                            <td className="px-8 py-5 text-center">
+                              <span className={`text-xl font-black ${p.soldCount > 0 ? 'text-sky-700' : 'text-slate-200'}`}>{p.soldCount}</span>
+                            </td>
+                            <td className="px-8 py-5 text-right font-bold text-slate-600 text-sm">{formatMoney(p.totalRevenue)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                 </div>
+               </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* MODAL DE COBRO */}
+      {isCheckoutOpen && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-[4rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <div className="p-12 text-center bg-[#001d3d] text-white">
+              <p className="text-sky-400 text-[10px] font-black tracking-[0.3em] uppercase mb-4">Total Neto</p>
+              <h3 className="text-7xl font-black tracking-tighter text-white">{formatMoney(total)}</h3>
+            </div>
+            <div className="p-12 space-y-8">
+              <div className="flex gap-4">
+                <button onClick={() => setPaymentMethod('efectivo')} className={`flex-1 flex flex-col items-center gap-3 p-8 rounded-[2.5rem] border-2 transition-all ${paymentMethod === 'efectivo' ? 'bg-sky-50 border-sky-500 text-sky-700' : 'bg-slate-50 border-transparent text-slate-300'}`}>
+                  <Banknote size={36} /><span className="font-black text-[10px] uppercase tracking-widest">Efectivo</span>
+                </button>
+                <button onClick={() => setPaymentMethod('debito')} className={`flex-1 flex flex-col items-center gap-3 p-8 rounded-[2.5rem] border-2 transition-all ${paymentMethod === 'debito' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-slate-50 border-transparent text-slate-300'}`}>
+                  <CreditCard size={36} /><span className="font-black text-[10px] uppercase tracking-widest">Débito</span>
+                </button>
+              </div>
+              {paymentMethod === 'efectivo' && (
+                <div className="space-y-6">
+                   <input type="number" className="w-full bg-slate-50 border-2 p-6 rounded-[2rem] text-5xl font-black text-slate-900 outline-none text-center shadow-inner" placeholder="0" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} autoFocus />
+                   <div className="p-8 rounded-[2.5rem] bg-emerald-50 text-center border border-emerald-100">
+                      <p className="text-emerald-700 font-black uppercase text-[10px] mb-2">Cambio a Devolver</p>
+                      <p className="text-5xl font-black text-emerald-600">{formatMoney(Math.max(0, (parseFloat(cashReceived) || 0) - total))}</p>
+                   </div>
+                </div>
+              )}
+              {paymentMethod === 'debito' && (
+                  <div className="py-10 text-center animate-pulse">
+                      <CreditCard className="mx-auto text-sky-600 mb-4" size={48} />
+                      <p className="font-black uppercase text-xs text-sky-700 tracking-widest">Esperando Transacción...</p>
+                  </div>
+              )}
+              <div className="flex gap-4 pt-4">
+                <button onClick={() => { setIsCheckoutOpen(false); setCashReceived(''); }} className="flex-1 py-6 font-bold text-slate-400 uppercase text-[10px] tracking-widest">Cerrar</button>
+                <button disabled={paymentMethod === 'efectivo' && (!cashReceived || parseFloat(cashReceived) < total)} onClick={finalizeSale} className="flex-[2] bg-sky-600 text-white py-6 rounded-3xl font-black text-xl shadow-xl hover:bg-sky-700 disabled:opacity-20 active:scale-95 uppercase tracking-tighter">Finalizar Cobro</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 20px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #0ea5e9; }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;
+
