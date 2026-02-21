@@ -1,33 +1,56 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  LayoutGrid, History, ShoppingCart, Search, Plus, Trash2, 
-  DollarSign, X, Clock, Ticket, Gift, Printer, Minus, 
-  CreditCard, Banknote, BarChart3, ChevronRight, Utensils, 
-  Waves, Anchor, Compass, MessageCircle, Users 
+  LayoutGrid, 
+  History, 
+  ShoppingCart, 
+  Search, 
+  Plus, 
+  Trash2, 
+  DollarSign, 
+  X, 
+  CheckCircle2, 
+  Clock,
+  Ticket,
+  Gift,
+  Printer,
+  Minus,
+  CreditCard,
+  Banknote,
+  BarChart3,
+  ChevronRight,
+  Utensils,
+  Waves,
+  Anchor,
+  Compass,
+  MessageCircle,
+  Users
 } from 'lucide-react';
 
+/**
+ * CONFIGURACIÓN DE PRODUCTOS - ACUARIO VALPARAÍSO
+ */
 const INITIAL_PRODUCTS = [
-  // --- ENTRADAS ---
+  // --- SECCIÓN: ENTRADAS ---
   { id: 1, name: "Entrada General Adulto", price: 4900, category: "Entradas", color: "bg-sky-50", icon: Ticket },
   { id: 2, name: "Entrada Niño (2-12 años)", price: 3900, category: "Entradas", color: "bg-sky-50", icon: Ticket },
   { id: 3, name: "Adulto Mayor (60+)", price: 3900, category: "Entradas", color: "bg-sky-50", icon: Ticket },
   { id: 4, name: "Entrada Convenio BCI", price: 3675, category: "Entradas", color: "bg-cyan-50", icon: Ticket },
   
-  // --- ZOOVENIR ---
-  { id: 5, name: "Peluche Tiburón Blanco", price: 12000, category: "Zoovenir", color: "bg-blue-50", icon: Gift },
+  // --- SECCIÓN: ZOOVENIR ---
+  { id: 5, name: "Peluche Tiburón Blanco XL", price: 12000, category: "Zoovenir", color: "bg-blue-50", icon: Gift },
   { id: 6, name: "Gorra Acuario Valpo", price: 6500, category: "Zoovenir", color: "bg-blue-50", icon: Gift },
-  { id: 7, name: "Llavero Estrella Mar", price: 2500, category: "Zoovenir", color: "bg-blue-50", icon: Gift },
+  { id: 7, name: "Llavero Estrellita", price: 2500, category: "Zoovenir", color: "bg-blue-50", icon: Gift },
   
-  // --- COMIDA ---
+  // --- SECCIÓN: COMIDA ---
   { id: 11, name: "Combo Fish & Chips", price: 7500, category: "Comida", color: "bg-teal-50", icon: Utensils },
   { id: 13, name: "Bebida Océano 500ml", price: 2000, category: "Comida", color: "bg-teal-50", icon: Utensils },
   { id: 14, name: "Helado Tritón", price: 2500, category: "Comida", color: "bg-teal-50", icon: Utensils },
 ];
 
-const GUIDES = ["Guía Marina", "Guía Sebastián", "Guía Javiera", "Guía Rodrigo"];
+const GUIDES = ["Guía Marina", "Guía Sebastián", "Guía Javiera", "Guía Rodrigo", "Guía Ignacia"];
 
 const App = () => {
-  const [currentView, setCurrentView] = useState('pos'); // pos, tours, history, reports
+  const [currentView, setCurrentView] = useState('pos'); 
   const [activeCategory, setActiveCategory] = useState('Todas');
   const [cart, setCart] = useState([]);
   const [salesHistory, setSalesHistory] = useState([]);
@@ -36,56 +59,68 @@ const App = () => {
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
   const [cashReceived, setCashReceived] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Estado para Recorridos Guiados
   const [selectedGuide, setSelectedGuide] = useState('');
   const [tourHistory, setTourHistory] = useState([]);
 
-  // Actualizar el reloj cada segundo
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Filtrado de productos por búsqueda y categoría
-  const filteredProducts = INITIAL_PRODUCTS.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-    (activeCategory === 'Todas' || p.category === activeCategory)
-  );
+  const filteredProducts = INITIAL_PRODUCTS.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = activeCategory === 'Todas' || p.category === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
 
-  // Cálculos totales
   const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-  // Generación de reporte de inventario vendido
   const productSalesReport = useMemo(() => {
     const report = {};
-    INITIAL_PRODUCTS.forEach(p => report[p.id] = { ...p, soldCount: 0, revenue: 0 });
+    INITIAL_PRODUCTS.forEach(p => {
+      report[p.id] = { ...p, soldCount: 0, totalRevenue: 0 };
+    });
     salesHistory.forEach(sale => {
       sale.items.forEach(item => {
         if (report[item.id]) {
           report[item.id].soldCount += item.quantity;
-          report[item.id].revenue += (item.price * item.quantity);
+          report[item.id].totalRevenue += (item.price * item.quantity);
         }
       });
     });
     return Object.values(report).sort((a, b) => b.soldCount - a.soldCount);
   }, [salesHistory]);
 
-  // Funciones de Carrito
   const addToCart = (product) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
-      if (existing) return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      if (existing) {
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
       return [...prev, { ...product, quantity: 1 }];
     });
   };
 
   const updateQuantity = (id, delta) => {
-    setCart(prev => prev.map(item => 
-      item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
-    ).filter(i => i.quantity > 0));
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQty = item.quantity + delta;
+        return newQty > 0 ? { ...item, quantity: newQty } : item;
+      }
+      return item;
+    }).filter(item => item.quantity > 0));
   };
 
   const removeFromCart = (id) => {
     setCart(prev => prev.filter(item => item.id !== id));
+  };
+
+  const cancelOrder = () => {
+    if (cart.length > 0) {
+      setCart([]);
+    }
   };
 
   const finalizeSale = () => {
@@ -93,8 +128,8 @@ const App = () => {
       id: `AV-${Date.now().toString().slice(-6)}`,
       time: new Date().toLocaleTimeString(),
       items: [...cart],
-      total,
-      method: paymentMethod
+      total: total,
+      method: paymentMethod,
     };
     setSalesHistory([newSale, ...salesHistory]);
     setCart([]);
@@ -102,131 +137,168 @@ const App = () => {
     setCashReceived('');
   };
 
-  // Lógica de Recorridos (Redondeo a 5 min + 15 min de margen)
+  // --- Lógica de Recorridos Guiados con Redondeo ---
   const handleCreateTour = () => {
     if (!selectedGuide) return;
+
+    // Obtener minutos actuales
     const now = new Date();
     const minutes = now.getMinutes();
+    
+    // Redondear minutos al múltiplo de 5 más cercano
     const roundedMinutes = Math.round(minutes / 5) * 5;
+    
+    // Crear nueva fecha base con minutos redondeados
     const baseDate = new Date(now);
     baseDate.setMinutes(roundedMinutes);
     baseDate.setSeconds(0);
+    baseDate.setMilliseconds(0);
+
+    // Calcular hora de inicio (Base Redondeada + 15 minutos)
     const tourDate = new Date(baseDate.getTime() + 15 * 60000);
     const tourTime = tourDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    setTourHistory([{ id: Date.now(), guide: selectedGuide, time: tourTime, created: now.toLocaleTimeString() }, ...tourHistory]);
-    
-    const msg = `🌊 *ACUARIO VALPARAÍSO*: Nuevo recorrido programado a las ${tourTime} con el guía ${selectedGuide}.`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    const newTour = {
+      id: Date.now(),
+      guide: selectedGuide,
+      time: tourTime,
+      created: now.toLocaleTimeString()
+    };
+
+    setTourHistory([newTour, ...tourHistory]);
+
+    // Generar mensaje de WhatsApp
+    const message = `🌊 *Acuario Valparaíso*: Nuevo recorrido guiado programado.\n\n👤 *Guía*: ${selectedGuide}\n⏰ *Hora de inicio*: ${tourTime}\n📍 Favor presentarse en el punto de encuentro 5 minutos antes.`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
-  const formatMoney = (v) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(v);
+  const formatMoney = (val) => {
+    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(val);
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden font-sans bg-slate-50 text-slate-900">
-      {/* Sidebar - Barra Lateral Náutica */}
-      <aside className="w-20 lg:w-64 bg-[#001d3d] text-white flex flex-col shrink-0 border-r border-blue-900 transition-all">
-        <div className="p-4 lg:p-6 mb-4 flex items-center gap-3">
-          <div className="bg-sky-500 p-2 rounded-xl shadow-lg"><Waves size={24} /></div>
-          <div className="hidden lg:block font-black text-sm uppercase leading-none">
-            Acuario <span className="text-sky-400 block text-[10px]">VALPARAÍSO POS</span>
+    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
+      
+      {/* SIDEBAR NÁUTICO */}
+      <aside className="w-24 lg:w-64 bg-[#001d3d] text-white flex flex-col shrink-0 transition-all border-r border-blue-900 shadow-2xl z-20">
+        <div className="p-6 mb-8 flex items-center gap-3">
+          <div className="bg-sky-500 p-2 rounded-xl text-white shadow-lg shadow-sky-500/20">
+            <Waves size={24} />
+          </div>
+          <div className="hidden lg:block">
+            <h1 className="font-black text-sm uppercase leading-none">Acuario</h1>
+            <span className="text-sky-400 font-bold text-[10px] tracking-widest mt-1">VALPARAÍSO POS</span>
           </div>
         </div>
-        <nav className="flex-1 px-2 lg:px-4 space-y-2">
-          <button onClick={() => setCurrentView('pos')} className={`w-full flex items-center justify-center lg:justify-start gap-4 p-4 rounded-2xl transition-all ${currentView === 'pos' ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/40' : 'hover:bg-slate-800 text-slate-400'}`}>
-            <ShoppingCart size={22} /><span className="hidden lg:block font-bold">Vender</span>
+
+        <nav className="flex-1 px-4 space-y-2">
+          <button onClick={() => setCurrentView('pos')} className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all ${currentView === 'pos' ? 'bg-sky-600 shadow-lg shadow-sky-900/40 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <ShoppingCart size={22} />
+            <span className="font-bold text-sm hidden lg:block text-left">Vender</span>
           </button>
-          <button onClick={() => setCurrentView('tours')} className={`w-full flex items-center justify-center lg:justify-start gap-4 p-4 rounded-2xl transition-all ${currentView === 'tours' ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/40' : 'hover:bg-slate-800 text-slate-400'}`}>
-            <Compass size={22} /><span className="hidden lg:block font-bold">Recorridos</span>
+          <button onClick={() => setCurrentView('tours')} className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all ${currentView === 'tours' ? 'bg-sky-600 shadow-lg shadow-sky-900/40 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <Compass size={22} />
+            <span className="font-bold text-sm hidden lg:block text-left">Recorridos</span>
           </button>
-          <button onClick={() => setCurrentView('history')} className={`w-full flex items-center justify-center lg:justify-start gap-4 p-4 rounded-2xl transition-all ${currentView === 'history' ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/40' : 'hover:bg-slate-800 text-slate-400'}`}>
-            <History size={22} /><span className="hidden lg:block font-bold">Ventas</span>
+          <button onClick={() => setCurrentView('history')} className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all ${currentView === 'history' ? 'bg-sky-600 shadow-lg shadow-sky-900/40 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <History size={22} />
+            <span className="font-bold text-sm hidden lg:block text-left">Historial</span>
           </button>
-          <button onClick={() => setCurrentView('reports')} className={`w-full flex items-center justify-center lg:justify-start gap-4 p-4 rounded-2xl transition-all ${currentView === 'reports' ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/40' : 'hover:bg-slate-800 text-slate-400'}`}>
-            <BarChart3 size={22} /><span className="hidden lg:block font-bold">Reportes</span>
+          <button onClick={() => setCurrentView('reports')} className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all ${currentView === 'reports' ? 'bg-sky-600 shadow-lg shadow-sky-900/40 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <BarChart3 size={22} />
+            <span className="font-bold text-sm hidden lg:block text-left">Reportes</span>
           </button>
         </nav>
-        <div className="p-4 lg:p-6 mt-auto border-t border-blue-900/50 flex items-center gap-3">
-          <Anchor size={18} className="text-sky-400" />
-          <span className="text-[10px] font-black uppercase hidden lg:block text-sky-200">Muelle Prat</span>
+
+        <div className="p-6 mt-auto">
+            <div className="bg-blue-900/30 p-4 rounded-2xl flex items-center gap-3 border border-blue-800/50">
+                <Anchor size={18} className="text-sky-400" />
+                <span className="text-[10px] font-black uppercase text-sky-200 hidden lg:block">Puerto Valparaíso</span>
+            </div>
         </div>
       </aside>
 
-      {/* Área Principal de Contenido */}
+      {/* ÁREA DE TRABAJO */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
-          <div className="bg-sky-50 px-4 py-1.5 rounded-full text-sky-600 border border-sky-100 text-xs font-bold font-mono">
-            {currentTime.toLocaleTimeString()}
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 shadow-sm z-10">
+          <div className="flex items-center gap-2 bg-sky-50 px-4 py-1.5 rounded-full text-sky-600 border border-sky-100 shadow-inner">
+            <Clock size={16} />
+            <span className="text-xs font-bold font-mono uppercase">{currentTime.toLocaleTimeString()}</span>
           </div>
-          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic hidden sm:block">
-            ACUARIO VALPARAÍSO POS TERMINAL
-          </h2>
+          <h2 className="font-black text-slate-400 uppercase text-[10px] tracking-widest hidden md:block italic">Acuario Valparaíso • POS Terminal</h2>
         </header>
 
         <div className="flex-1 overflow-hidden">
           {currentView === 'pos' && (
             <div className="flex h-full flex-col lg:flex-row">
-              {/* Catálogo de Productos */}
-              <div className="flex-1 p-4 lg:p-6 overflow-y-auto bg-slate-50/50">
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input type="text" placeholder="Buscar..." className="w-full pl-10 pr-4 py-3 bg-white border rounded-2xl text-sm outline-none focus:border-sky-500 shadow-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <div className="flex-1 p-4 lg:p-8 overflow-y-auto custom-scrollbar bg-slate-50/50">
+                <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
+                  <div className="relative w-full md:w-80">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input type="text" placeholder="Buscar en el acuario..." className="w-full pl-12 pr-6 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 transition-all outline-none shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                   </div>
-                  <div className="flex gap-1 overflow-x-auto p-1 bg-white border rounded-2xl shadow-sm no-scrollbar">
+                  <div className="flex gap-2 bg-white p-1 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
                     {['Todas', 'Entradas', 'Zoovenir', 'Comida'].map(cat => (
-                      <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeCategory === cat ? 'bg-sky-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{cat}</button>
+                      <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${activeCategory === cat ? 'bg-sky-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{cat}</button>
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
-                  {filteredProducts.map(p => (
-                    <button key={p.id} onClick={() => addToCart(p)} className={`${p.color} p-5 rounded-[2.5rem] border-2 border-transparent hover:border-sky-300 flex flex-col justify-between h-48 text-left shadow-sm hover:shadow-xl active:scale-95 transition-all`}>
-                      <div className="bg-white/90 p-2 rounded-xl text-sky-700 w-fit shadow-sm"><p.icon size={20} /></div>
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+                  {filteredProducts.map(product => (
+                    <button key={product.id} onClick={() => addToCart(product)} className={`${product.color} p-6 rounded-[2.5rem] border-2 border-transparent hover:border-sky-300 hover:shadow-2xl transition-all flex flex-col justify-between h-48 text-left group active:scale-95 shadow-sm`}>
+                      <div className="flex justify-between items-start">
+                        <div className="bg-white/80 p-2 rounded-xl shadow-sm text-sky-700"><product.icon size={20} /></div>
+                        <div className="bg-sky-600 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0"><Plus size={16} /></div>
+                      </div>
                       <div>
-                        <p className="text-[8px] font-black uppercase text-sky-400 leading-none">{p.category}</p>
-                        <h3 className="font-extrabold text-slate-800 text-xs my-1 leading-tight">{p.name}</h3>
-                        <p className="text-sky-700 font-black text-lg">{formatMoney(p.price)}</p>
+                        <p className="text-[9px] font-black uppercase text-sky-400 mb-1 leading-none">{product.category}</p>
+                        <h3 className="font-extrabold text-slate-800 text-sm mb-1 leading-tight">{product.name}</h3>
+                        <p className="text-sky-700 font-black text-xl">{formatMoney(product.price)}</p>
                       </div>
                     </button>
                   ))}
                 </div>
               </div>
               
-              {/* Carrito de Ventas */}
-              <div className="w-full lg:w-[400px] bg-white border-l flex flex-col shadow-2xl shrink-0">
-                <div className="p-5 border-b flex justify-between items-center bg-sky-50/20">
-                  <h2 className="font-black text-xl flex items-center gap-2 text-sky-900 uppercase tracking-tighter"><ShoppingCart size={20} /> Pedido</h2>
-                  <button onClick={() => setCart([])} className="text-[10px] font-black text-red-400 uppercase tracking-widest hover:text-red-600">Vaciar</button>
+              <div className="w-full lg:w-[420px] bg-white border-l border-slate-200 flex flex-col shadow-2xl shrink-0">
+                <div className="p-6 border-b flex justify-between items-center bg-sky-50/30">
+                  <h2 className="font-black text-xl flex items-center gap-2 text-sky-900 uppercase tracking-tighter"><ShoppingCart size={20} className="text-sky-600" /> Pedido</h2>
+                  <button onClick={cancelOrder} className="text-[10px] font-black text-red-400 hover:text-red-600 uppercase tracking-widest transition-colors">Anular Pedido</button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30 custom-scrollbar">
                   {cart.map(item => (
-                    <div key={item.id} className="bg-white p-4 rounded-2xl border flex items-center gap-3 shadow-sm hover:border-sky-100 transition-all group">
+                    <div key={item.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center gap-3 shadow-sm hover:border-sky-100 transition-all animate-in slide-in-from-right duration-300">
                       <div className="flex-1 leading-tight">
-                        <p className="text-sm font-black text-slate-800">{item.name}</p>
-                        <p className="text-[10px] text-sky-400 uppercase font-bold">{formatMoney(item.price)}</p>
+                        <p className="text-sm font-black text-slate-800 leading-tight">{item.name}</p>
+                        <p className="text-[10px] text-sky-400 font-bold uppercase mt-1">{formatMoney(item.price)} c/u</p>
                       </div>
-                      <div className="flex items-center bg-slate-50 rounded-xl p-1 border">
-                        <button onClick={() => updateQuantity(item.id, -1)} className="p-1.5 text-slate-400 hover:text-sky-600"><Minus size={14}/></button>
-                        <span className="w-7 text-center text-xs font-black text-slate-700">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, 1)} className="p-1.5 text-slate-400 hover:text-sky-600"><Plus size={14}/></button>
+                      <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
+                        <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center hover:bg-white rounded-lg transition text-slate-500"><Minus size={14}/></button>
+                        <span className="w-8 text-center text-xs font-black text-slate-800">{item.quantity}</span>
+                        <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 flex items-center justify-center hover:bg-white rounded-lg transition text-slate-500"><Plus size={14}/></button>
                       </div>
-                      <button onClick={() => removeFromCart(item.id)} className="text-red-300 hover:text-red-500 p-1.5 transition-colors"><Trash2 size={18}/></button>
+                      <div className="flex flex-col items-end gap-1">
+                        <p className="font-black text-sky-700 text-sm">{formatMoney(item.price * item.quantity)}</p>
+                        <button onClick={() => removeFromCart(item.id)} className="text-red-300 hover:text-red-500 transition-colors p-1" title="Quitar item">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {cart.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-200 opacity-50 py-20">
+                    <div className="h-full flex flex-col items-center justify-center text-slate-200 py-20 opacity-40">
                       <ShoppingCart size={48} className="mb-4" />
-                      <p className="font-black text-[10px] uppercase tracking-widest">Esperando Pedido</p>
+                      <p className="font-black text-[10px] uppercase tracking-widest text-center">Esperando Selección de Productos</p>
                     </div>
                   )}
                 </div>
                 <div className="p-8 bg-[#001d3d] text-white rounded-t-[3rem] shadow-2xl">
                   <div className="flex justify-between items-center mb-6 px-2">
-                    <span className="text-xs font-black text-sky-400 uppercase tracking-widest">Monto Total</span>
-                    <span className="text-4xl font-black tracking-tighter">{formatMoney(total)}</span>
+                    <span className="text-xs font-black text-sky-400 uppercase tracking-widest">Total a Cobrar</span>
+                    <span className="text-4xl font-black tracking-tighter text-white">{formatMoney(total)}</span>
                   </div>
-                  <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0} className="w-full bg-sky-500 hover:bg-sky-400 text-white py-5 rounded-[2rem] font-black text-lg uppercase tracking-widest shadow-xl transition-all disabled:opacity-50 disabled:bg-slate-800">PAGAR AHORA</button>
+                  <button onClick={() => setIsCheckoutOpen(true)} disabled={cart.length === 0} className="w-full bg-sky-500 hover:bg-sky-400 text-white py-5 rounded-[2rem] font-black text-lg uppercase tracking-widest shadow-xl transition-all disabled:opacity-50 disabled:bg-slate-700 active:scale-95">COBRAR</button>
                 </div>
               </div>
             </div>
@@ -234,7 +306,7 @@ const App = () => {
 
           {currentView === 'tours' && (
             <div className="flex-1 p-6 lg:p-10 overflow-y-auto bg-sky-50/20">
-              <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
+              <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
                 <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Gestión de Recorridos</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="bg-white p-8 rounded-[3rem] border shadow-xl border-blue-50">
@@ -244,22 +316,24 @@ const App = () => {
                         <button key={g} onClick={() => setSelectedGuide(g)} className={`p-4 rounded-2xl text-left font-bold text-sm border-2 transition-all ${selectedGuide === g ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-md scale-[1.02]' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>{g}</button>
                       ))}
                     </div>
-                    <button onClick={handleCreateTour} disabled={!selectedGuide} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg shadow-emerald-100 uppercase"><MessageCircle size={22} /> Notificar por WSP</button>
+                    <button onClick={handleCreateTour} disabled={!selectedGuide} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg shadow-emerald-100 uppercase tracking-widest text-sm">
+                        <MessageCircle size={22} /> Notificar por WhatsApp
+                    </button>
                   </div>
                   <div className="space-y-4">
-                    <h3 className="font-black uppercase text-[10px] text-slate-400 ml-4 tracking-widest">Próximos Recorridos (Redondeo 15m)</h3>
-                    {tourHistory.map(t => (
-                      <div key={t.id} className="bg-white p-6 rounded-[2.5rem] border flex items-center justify-between shadow-md border-sky-50 animate-in zoom-in">
-                        <div className="bg-sky-50 text-sky-600 p-5 rounded-3xl font-black text-2xl shadow-inner border border-sky-100">{t.time}</div>
-                        <div className="text-right">
-                          <p className="font-black text-slate-800 text-lg uppercase leading-none mb-1 tracking-tighter">{t.guide}</p>
-                          <p className="text-[9px] font-black text-sky-400 uppercase tracking-widest">Muelle Prat</p>
+                    <h3 className="font-black uppercase text-[10px] text-slate-400 ml-4 tracking-widest">Próximos Recorridos (Margen Redondeado)</h3>
+                    <div className="space-y-3">
+                        {tourHistory.map(t => (
+                        <div key={t.id} className="bg-white p-6 rounded-[2.5rem] border flex items-center justify-between shadow-md border-sky-50 animate-in zoom-in">
+                            <div className="bg-sky-50 text-sky-600 p-5 rounded-3xl font-black text-2xl shadow-inner border border-sky-100">{t.time}</div>
+                            <div className="text-right">
+                                <p className="font-black text-slate-800 text-lg uppercase leading-none mb-1 tracking-tighter">{t.guide}</p>
+                                <p className="text-[9px] font-black text-sky-400 uppercase tracking-widest italic">A punto de iniciar</p>
+                            </div>
                         </div>
-                      </div>
-                    ))}
-                    {tourHistory.length === 0 && (
-                      <div className="p-20 text-center text-slate-300 font-black uppercase text-xs border-2 border-dashed rounded-[3rem] bg-white/50">Sin programas activos</div>
-                    )}
+                        ))}
+                        {tourHistory.length === 0 && <div className="p-20 text-center text-slate-300 font-black uppercase text-xs border-2 border-dashed rounded-[3rem] bg-white/50">Sin programas hoy</div>}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -267,45 +341,47 @@ const App = () => {
           )}
 
           {currentView === 'history' && (
-            <div className="flex-1 p-6 lg:p-10 overflow-y-auto">
-              <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in">
-                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-8">Bitácora de Ventas</h2>
-                {salesHistory.map(s => (
-                  <div key={s.id} className="bg-white p-6 rounded-[2.5rem] border flex items-center justify-between shadow-sm hover:border-sky-200 transition-all group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center font-black text-[10px] shadow-sm border border-sky-100 group-hover:bg-sky-600 group-hover:text-white transition-colors">POS</div>
-                      <div>
-                        <p className="text-sm font-black text-slate-800 leading-none mb-1 uppercase tracking-tight">{s.id}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">{s.time} • {s.method.toUpperCase()}</p>
+            <div className="flex-1 p-6 lg:p-10 overflow-y-auto bg-slate-100/30">
+              <div className="max-w-4xl mx-auto space-y-4 animate-in fade-in">
+                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-8 text-center lg:text-left">Bitácora de Ventas</h2>
+                <div className="space-y-3">
+                  {salesHistory.map(s => (
+                    <div key={s.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex items-center justify-between shadow-sm hover:border-sky-200 transition-all group">
+                      <div className="flex items-center gap-6">
+                        <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center font-black text-[10px] shadow-sm border border-sky-100 group-hover:bg-sky-600 group-hover:text-white transition-colors">POS</div>
+                        <div>
+                          <p className="text-sm font-black text-slate-800 leading-none mb-1 uppercase tracking-tight">{s.id}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{s.time} • {s.method.toUpperCase()}</p>
+                        </div>
                       </div>
+                      <p className="text-2xl font-black text-sky-800 tabular-nums">{formatMoney(s.total)}</p>
                     </div>
-                    <p className="text-2xl font-black text-sky-800">{formatMoney(s.total)}</p>
-                  </div>
-                ))}
-                {salesHistory.length === 0 && <p className="text-center py-20 text-slate-300 font-black uppercase italic">No hay ventas registradas</p>}
+                  ))}
+                  {salesHistory.length === 0 && <div className="p-20 text-center text-slate-300 font-black uppercase italic text-sm">No hay ventas registradas en esta sesión</div>}
+                </div>
               </div>
             </div>
           )}
 
           {currentView === 'reports' && (
-            <div className="flex-1 p-6 lg:p-10 overflow-y-auto">
+            <div className="flex-1 p-6 lg:p-10 overflow-y-auto bg-slate-50">
               <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in">
-                <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter text-center">Inventario de Ventas</h2>
-                <div className="bg-white rounded-[3rem] border overflow-hidden shadow-2xl border-blue-50">
+                <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter text-center">Informe de Inventario</h2>
+                <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-2xl border-blue-50">
                   <table className="w-full text-left">
                     <thead className="bg-slate-50 border-b font-black text-[10px] text-slate-400 uppercase tracking-widest">
                       <tr>
                         <th className="p-8">Producto Marino</th>
-                        <th className="p-8 text-center">Unds.</th>
-                        <th className="p-8 text-right">Recaudación</th>
+                        <th className="p-8 text-center">Unds. Vendidas</th>
+                        <th className="p-8 text-right">Recaudación Total</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {productSalesReport.map(p => (
-                        <tr key={p.id} className={`${p.soldCount > 0 ? 'bg-white' : 'opacity-30'}`}>
+                        <tr key={p.id} className={`${p.soldCount > 0 ? 'bg-white font-bold' : 'opacity-30'}`}>
                           <td className="p-8 text-sm font-bold uppercase tracking-tight">{p.name}</td>
                           <td className="p-8 text-center font-black text-3xl text-sky-600">{p.soldCount}</td>
-                          <td className="p-8 text-right text-sm font-bold text-slate-500 tracking-tighter">{formatMoney(p.revenue)}</td>
+                          <td className="p-8 text-right text-sm font-bold text-slate-500 tracking-tighter">{formatMoney(p.revenue || p.totalRevenue)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -317,13 +393,14 @@ const App = () => {
         </div>
       </main>
 
-      {/* Modal de Pago - Módulo de Transacción */}
+      {/* MODAL DE PAGO OCEÁNICO */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-[#001d3d]/95 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-[4rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-            <div className="p-10 text-center bg-[#001d3d] text-white">
-              <p className="text-sky-400 text-[10px] font-black uppercase mb-3 tracking-[0.2em]">Resumen de Cobro</p>
-              <h3 className="text-6xl font-black tracking-tighter">{formatMoney(total)}</h3>
+            <div className="p-10 text-center bg-[#001d3d] text-white relative">
+               <button onClick={() => setIsCheckoutOpen(false)} className="absolute top-8 right-8 text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
+              <p className="text-sky-400 text-[10px] font-black uppercase mb-3 tracking-[0.2em]">Monto total de venta</p>
+              <h3 className="text-6xl font-black tracking-tighter text-white">{formatMoney(total)}</h3>
             </div>
             <div className="p-10 space-y-8">
               <div className="flex gap-3">
@@ -334,15 +411,15 @@ const App = () => {
               {paymentMethod === 'efectivo' && (
                 <div className="space-y-4 animate-in slide-in-from-bottom-2">
                   <label className="block text-[10px] font-black text-slate-400 text-center uppercase tracking-widest">Efectivo Recibido</label>
-                  <input type="number" className="w-full bg-slate-100 border-none p-6 rounded-[2rem] text-4xl font-black text-center outline-none focus:ring-4 focus:ring-sky-500/20" placeholder="0" value={cashReceived} onChange={e => setCashReceived(e.target.value)} autoFocus />
+                  <input type="number" className="w-full bg-slate-100 border-none p-6 rounded-[2rem] text-4xl font-black text-center outline-none focus:ring-4 focus:ring-sky-500/20 shadow-inner" placeholder="0" value={cashReceived} onChange={e => setCashReceived(e.target.value)} autoFocus />
                   <div className="p-6 rounded-3xl bg-emerald-50 text-center border-2 border-emerald-100 shadow-inner">
                     <p className="text-emerald-700 font-black text-[10px] uppercase mb-1 tracking-widest">Cambio a Devolver</p>
-                    <p className="text-4xl font-black text-emerald-600">{formatMoney(Math.max(0, (parseFloat(cashReceived) || 0) - total))}</p>
+                    <p className="text-4xl font-black text-emerald-600 uppercase">{formatMoney(Math.max(0, (parseFloat(cashReceived) || 0) - total))}</p>
                   </div>
                 </div>
               )}
               
-              <div className="space-y-4">
+              <div className="space-y-4 pt-4">
                 <button onClick={finalizeSale} disabled={paymentMethod === 'efectivo' && (!cashReceived || parseFloat(cashReceived) < total)} className="w-full bg-sky-600 hover:bg-sky-500 text-white py-6 rounded-[2rem] font-black text-lg shadow-xl uppercase tracking-tighter transition-all active:scale-95 disabled:opacity-30 disabled:bg-slate-800">Finalizar Venta</button>
                 <button onClick={() => { setIsCheckoutOpen(false); setCashReceived(''); }} className="w-full text-slate-400 font-black uppercase text-[10px] text-center tracking-[0.2em] hover:text-slate-600">Cancelar</button>
               </div>
