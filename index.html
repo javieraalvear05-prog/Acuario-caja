@@ -21,7 +21,7 @@
         }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #0ea5e9; border-radius: 10px; }
-        .animate-fade { animation: fadeIn 0.2s ease-out forwards; }
+        .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -103,7 +103,7 @@
         };
 
         const INITIAL_PRODUCTS = [
-            { id: 1, name: "Entrada Adulto", price: 4900, category: "Entradas", color: "bg-sky-50", icon: "Ticket" },
+            { id: 1, name: "Entrada General Adulto", price: 4900, category: "Entradas", color: "bg-sky-50", icon: "Ticket" },
             { id: 2, name: "Entrada Niño", price: 3900, category: "Entradas", color: "bg-sky-50", icon: "Ticket" },
             { id: 4, name: "Entrada BCI", price: 3675, category: "Entradas", color: "bg-cyan-50", icon: "Ticket" },
             { id: 5, name: "Peluche Tiburón Blanco", price: 12000, category: "Zoovenir", color: "bg-blue-50", icon: "Gift" },
@@ -200,7 +200,7 @@
                 const tourDate = new Date(roundedDate.getTime() + 15 * 60000);
                 const tourTime = tourDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 setTourHistory([{ id: Date.now(), guide: selectedGuide, time: tourTime }, ...tourHistory]);
-                window.open(`https://wa.me/?text=${encodeURIComponent(`🌊 Recorrido: ${tourTime} con ${selectedGuide}`)}`, '_blank');
+                window.open(`https://wa.me/?text=${encodeURIComponent(`🌊 *ACUARIO VALPARAÍSO*: Nuevo recorrido programado a las ${tourTime} con el guía ${selectedGuide}`)}`, '_blank');
             };
 
             const formatMoney = (v) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(v);
@@ -229,6 +229,10 @@
                                 <${Icon} name="BarChart3" size=${22} /><span className="hidden lg:block font-bold text-sm">Reportes</span>
                             </button>
                         </nav>
+                        <div className="p-4 lg:p-6 mt-auto border-t border-blue-900/50 flex items-center gap-3">
+                            <${Icon} name="Anchor" size=${18} className="text-sky-400" />
+                            <span className="text-[10px] font-black uppercase hidden lg:block text-sky-200">Puerto Valparaíso</span>
+                        </div>
                     </aside>
 
                     <main className="flex-1 flex flex-col overflow-hidden">
@@ -273,7 +277,7 @@
                                         </div>
                                         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30 custom-scrollbar">
                                             ${cart.map(item => html`
-                                                <div key=${item.id} className="bg-white p-4 rounded-2xl border flex items-center gap-3 shadow-sm hover:border-sky-100 transition-all">
+                                                <div key=${item.id} className="bg-white p-4 rounded-2xl border flex items-center gap-3 shadow-sm hover:border-sky-100 transition-all animate-fade">
                                                     <div className="flex-1 leading-tight">
                                                         <p className="text-sm font-black text-slate-800 leading-tight">${item.name}</p>
                                                         <p className="text-[10px] text-sky-400 uppercase font-bold mt-1">${formatMoney(item.price)}</p>
@@ -283,7 +287,7 @@
                                                         <span className="w-7 text-center text-[11px] font-black text-slate-700">${item.quantity}</span>
                                                         <button onClick=${() => updateQuantity(item.id, 1)} className="p-1.5 text-slate-400 hover:text-sky-600 transition-colors"><${Icon} name="Plus" size=${14}/></button>
                                                     </div>
-                                                    <button onClick=${() => removeFromCart(item.id)} className="text-red-300 hover:text-red-500 p-1.5 transition-colors"><${Icon} name="Trash2" size=${18}/></button>
+                                                    <button onClick=${() => removeFromCart(item.id)} className="text-red-300 hover:text-red-500 p-1.5 transition-colors" title="Quitar item"><${Icon} name="Trash2" size=${18}/></button>
                                                 </div>
                                             `)}
                                         </div>
@@ -293,6 +297,65 @@
                                                 <span className="text-4xl font-black tracking-tighter text-white">${formatMoney(total)}</span>
                                             </div>
                                             <button onClick=${() => setIsCheckoutOpen(true)} disabled=${cart.length === 0} className="w-full bg-sky-500 hover:bg-sky-400 text-white py-5 rounded-[2rem] font-black text-lg uppercase tracking-widest shadow-xl transition-all disabled:opacity-50">COBRAR VENTA</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `}
+
+                            ${currentView === 'tours' && html`
+                                <div className="flex-1 p-6 lg:p-10 overflow-y-auto bg-sky-50/20 custom-scrollbar animate-fade">
+                                    <div className="max-w-4xl mx-auto space-y-8">
+                                        <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter uppercase">Xestión de Percorridos</h2>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                            <div className="bg-white p-8 rounded-[3rem] border shadow-xl border-blue-50">
+                                                <label className="block text-[10px] font-black text-slate-400 uppercase mb-6 text-center tracking-widest leading-none">Seleccionar Guía Encargado</label>
+                                                <div className="grid grid-cols-1 gap-2 mb-8">
+                                                    ${GUIDES.map(g => html`
+                                                        <button key=${g} onClick=${() => setSelectedGuide(g)} className=${`p-4 rounded-2xl text-left font-bold text-sm border-2 transition-all ${selectedGuide === g ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-md scale-[1.02]' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>${g}</button>
+                                                    `)}
+                                                </div>
+                                                <button onClick=${handleCreateTour} disabled=${!selectedGuide} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg uppercase tracking-widest text-sm shadow-md"><${Icon} name="MessageCircle" size=${22} /> WhatsApp</button>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <h3 className="font-black uppercase text-[10px] text-slate-400 ml-4 tracking-widest uppercase leading-none">Próximos (Margen +15min)</h3>
+                                                <div className="space-y-3">
+                                                    ${tourHistory.length === 0 ? html`<div className="p-20 text-center text-slate-300 font-black uppercase text-xs border-2 border-dashed rounded-[3rem] bg-white/50">Sin programas hoy</div>` : 
+                                                        tourHistory.map(t => html`
+                                                            <div key=${t.id} className="bg-white p-6 rounded-[2.5rem] border flex items-center justify-between shadow-md border-sky-50 animate-fade">
+                                                                <div className="bg-sky-50 text-sky-600 p-5 rounded-3xl font-black text-2xl shadow-inner border border-sky-100">${t.time}</div>
+                                                                <div className="text-right">
+                                                                    <p className="font-black text-slate-800 text-lg uppercase leading-none mb-1 tracking-tighter">${t.guide}</p>
+                                                                    <p className="text-[9px] font-black text-sky-400 uppercase tracking-widest italic leading-none">Iniciando</p>
+                                                                </div>
+                                                            </div>
+                                                        `)
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `}
+
+                            ${currentView === 'history' && html`
+                                <div className="flex-1 p-6 lg:p-10 overflow-y-auto custom-scrollbar animate-fade">
+                                    <div className="max-w-3xl mx-auto space-y-4">
+                                        <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-8 text-center lg:text-left leading-none tracking-tighter uppercase">Bitácora de Ventas</h2>
+                                        <div className="space-y-3">
+                                            ${salesHistory.length === 0 ? html`<div className="p-20 text-center text-slate-300 font-black uppercase italic text-sm">No hay ventas registradas todavía</div>` : 
+                                                salesHistory.map(s => html`
+                                                    <div key=${s.id} className="bg-white p-6 rounded-[2.5rem] border flex items-center justify-between shadow-sm hover:border-sky-200 transition-all group animate-fade">
+                                                        <div className="flex items-center gap-6">
+                                                            <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center font-black text-[10px] shadow-sm border border-sky-100 group-hover:bg-sky-600 group-hover:text-white transition-colors">POS</div>
+                                                            <div>
+                                                                <p className="text-sm font-black text-slate-800 leading-none mb-1 uppercase tracking-tight">${s.id}</p>
+                                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">${s.time} • ${s.method.toUpperCase()}</p>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-2xl font-black text-sky-800 tabular-nums tracking-tight">${formatMoney(s.total)}</p>
+                                                    </div>
+                                                `)
+                                            }
                                         </div>
                                     </div>
                                 </div>
