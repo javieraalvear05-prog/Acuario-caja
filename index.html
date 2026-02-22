@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACUARIO VALPARAÍSO POS</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            overflow: hidden; 
+            background-color: #f1f5f9; 
+            margin: 0;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .animate-fade { animation: fadeIn 0.2s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .product-card { height: 130px; transition: all 0.2s; }
+        .product-card:active { transform: scale(0.96); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script>
+        const html = htm.bind(React.createElement);
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICONOS SVG ---
+        const Icon = ({ name, size = 18, className = "" }) => {
+            const icons = {
+                Waves: React.createElement('path', { d: "M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" }),
+                ShoppingCart: React.createElement('path', { d: "m3 3 3 .5m0 0L8 13h10l2-7H6.5M16 19a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM9 19a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" }),
+                Compass: React.createElement('g', null, React.createElement('circle', { cx: "12", cy: "12", r: "10" }), React.createElement('path', { d: "m16.2 7.8-2 7.4-7.4 2 2-7.4 7.4-2Z" })),
+                History: React.createElement('g', null, React.createElement('path', { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8m0 0V3m0 5h5" }), React.createElement('path', { d: "M12 7v5l4 2" })),
+                BarChart3: React.createElement('path', { d: "M3 20h18M7 16V8M11 16V4M15 16V10M19 16v-4" }),
+                Trash2: React.createElement('path', { d: "M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" }),
+                Plus: React.createElement('path', { d: "M12 5v14M5 12h14" }),
+                Minus: React.createElement('path', { d: "M5 12h14" }),
+                Search: React.createElement('g', null, React.createElement('circle', { cx: "11", cy: "11", r: "8" }), React.createElement('path', { d: "m21 21-4.3-4.3" })),
+                Ticket: React.createElement('path', { d: "M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" }),
+                Gift: React.createElement('path', { d: "M20 12v10H4V12M2 7h20v5H2V7Zm10 15V7m0 0a3 3 0 1 0-3-3m3 3a3 3 0 1 1 3-3" }),
+                Utensils: React.createElement('g', null, React.createElement('path', { d: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" }), React.createElement('path', { d: "M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" })),
+                Anchor: React.createElement('path', { d: "M12 5V2m0 20c5.5 0 10-4.5 10-10h-2a8 8 0 0 1-16 0H2c0 5.5 4.5 10 10 10Zm0-15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" }),
+                MessageCircle: React.createElement('path', { d: "M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7c1.1 0 2.1.2 3.1.6l4.4-1.1-1.1 4.4a8.38 8.38 0 0 1 .1 4Z" }),
+                X: React.createElement('path', { d: "M18 6 6 18M6 6l12 12" }),
+                Clock: React.createElement('path', { d: "M12 6v6l4 2m5-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" }),
+                Banknote: React.createElement('g', null, React.createElement('rect', { x: "2", y: "6", width: "20", height: "12", rx: "2" }), React.createElement('circle', { cx: "12", cy: "12", r: "2" })),
+                CreditCard: React.createElement('path', { d: "M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z" })
+            };
+            return React.createElement('svg', {
+                width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
+                strokeWidth: "2.2", strokeLinecap: "round", strokeLinejoin: "round", className: className
+            }, icons[name] || null);
+        };
+
+        const INITIAL_PRODUCTS = [
+            { id: 1, name: "Entrada General", price: 4900, category: "Entradas", color: "bg-sky-50", icon: "Ticket" },
+            { id: 2, name: "Entrada Niño", price: 3900, category: "Entradas", color: "bg-sky-50", icon: "Ticket" },
+            { id: 3, name: "Entrada 3ra Edad", price: 3900, category: "Entradas", color: "bg-sky-50", icon: "Ticket" },
+            { id: 4, name: "General BCI", price: 3675, category: "Entradas", color: "bg-cyan-50", icon: "Ticket" },
+            { id: 5, name: "Niño BCI", price: 2925, category: "Entradas", color: "bg-cyan-50", icon: "Ticket" },
+            { id: 10, name: "Entrada TNE", price: 2500, category: "Entradas", color: "bg-cyan-50", icon: "Ticket" },
+            { id: 15, name: "Peluche Tiburón", price: 10000, category: "Zoovenir", color: "bg-indigo-50", icon: "Gift" },
+            { id: 17, name: "Agua Mineral", price: 1200, category: "Comida", color: "bg-teal-50", icon: "Utensils" },
+            { id: 18, name: "Bebida", price: 1700, category: "Comida", color: "bg-teal-50", icon: "Utensils" }
+        ];
+
+        const GUIDES = ["Coni", "Teru", "Maqui", "Maca", "Ignacio", "Javier"];
+
+        const App = () => {
+            // Cargar datos iniciales de localStorage si no hay Firebase
+            const loadLocal = (key) => JSON.parse(localStorage.getItem(key) || '[]');
+            
+            const [currentView, setCurrentView] = useState('pos');
+            const [activeCategory, setActiveCategory] = useState('Todas');
+            const [cart, setCart] = useState([]);
+            const [salesHistory, setSalesHistory] = useState(loadLocal('av_sales'));
+            const [tourHistory, setTourHistory] = useState(loadLocal('av_tours'));
+            const [searchTerm, setSearchTerm] = useState('');
+            const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+            const [paymentMethod, setPaymentMethod] = useState('efectivo');
+            const [cashReceived, setCashReceived] = useState('');
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [selectedGuide, setSelectedGuide] = useState('');
+            const [activeReportTab, setActiveReportTab] = useState('todas');
+
+            // Guardar en localStorage cada vez que cambien los datos
+            useEffect(() => { localStorage.setItem('av_sales', JSON.stringify(salesHistory)); }, [salesHistory]);
+            useEffect(() => { localStorage.setItem('av_tours', JSON.stringify(tourHistory)); }, [tourHistory]);
+            
+            useEffect(() => {
+                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            const filteredProducts = INITIAL_PRODUCTS.filter(p => 
+                p.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+                (activeCategory === 'Todas' || p.category === activeCategory)
+            );
+
+            const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+            const reportsByMethod = useMemo(() => {
+                const getReport = (filter) => {
+                    const res = {}; let totalRev = 0;
+                    INITIAL_PRODUCTS.forEach(p => res[p.id] = { ...p, sold: 0, rev: 0 });
+                    salesHistory.forEach(s => {
+                        if (!filter || s.method === filter) {
+                            s.items.forEach(i => {
+                                if (res[i.id]) { res[i.id].sold += i.quantity; res[i.id].rev += (i.price * i.quantity); totalRev += (i.price * i.quantity); }
+                            });
+                        }
+                    });
+                    return { items: Object.values(res).sort((a,b) => b.sold - a.sold), totalRev };
+                };
+                return { todas: getReport(null), efectivo: getReport('efectivo'), debito: getReport('debito') };
+            }, [salesHistory]);
+
+            const addToCart = (p) => {
+                setCart(prev => {
+                    const ext = prev.find(x => x.id === p.id);
+                    if (ext) return prev.map(x => x.id === p.id ? { ...x, quantity: x.quantity + 1 } : x);
+                    return [...prev, { ...p, quantity: 1 }];
+                });
+            };
+
+            const finalizeSale = () => {
+                const newSale = {
+                    id: `AV-${Date.now().toString().slice(-4)}`,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    items: [...cart], total, method: paymentMethod
+                };
+                setSalesHistory([newSale, ...salesHistory]);
+                setCart([]); setIsCheckoutOpen(false); setCashReceived('');
+            };
+
+            const handleCreateTour = () => {
+                if (!selectedGuide) return;
+                const now = new Date();
+                const ms = 1000 * 60 * 5; 
+                const roundedDate = new Date(Math.round(now.getTime() / ms) * ms);
+                let tourDate = new Date(roundedDate.getTime() + 15 * 60000);
+
+                if (tourHistory.length > 0) {
+                    const last = tourHistory[0];
+                    const [h, m] = last.startTime.split(':').map(Number);
+                    const lastD = new Date(); lastD.setHours(h, m, 0, 0);
+                    if ((tourDate - lastD) / 60000 < 15) tourDate = new Date(lastD.getTime() + 15 * 60000);
+                }
+
+                const endD = new Date(tourDate.getTime() + 30 * 60000);
+                const start = tourDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const end = endD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                setTourHistory([{ id: Date.now(), guide: selectedGuide, startTime: start, endTime: end }, ...tourHistory]);
+                window.open(`https://wa.me/?text=${encodeURIComponent(`🌊 *ACUARIO VALPARAÍSO*: Recorrido ${start}-${end} con ${selectedGuide}`)}`, '_blank');
+            };
+
+            const clearDay = () => {
+                if (confirm("¿Reiniciar todas las ventas y recorridos del día?")) { setSalesHistory([]); setTourHistory([]); localStorage.clear(); }
+            };
+
+            const formatMoney = (v) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(v);
+
+            return html`
+                <div className="flex h-screen overflow-hidden bg-slate-100 text-slate-900 text-sm">
+                    <!-- Sidebar -->
+                    <aside className="w-16 lg:w-48 bg-[#001d3d] text-white flex flex-col shrink-0 z-20">
+                        <div className="p-4 lg:p-5 mb-2 flex items-center gap-3">
+                            <div className="bg-sky-500 p-1.5 rounded-lg"><${Icon} name="Waves" size=${16} /></div>
+                            <h1 className="hidden lg:block font-black text-xs uppercase tracking-tight">Acuario</h1>
+                        </div>
+                        <nav className="flex-1 px-2 space-y-1">
+                            ${[
+                                { id: 'pos', icon: 'ShoppingCart', label: 'Vender' },
+                                { id: 'tours', icon: 'Compass', label: 'Tours' },
+                                { id: 'history', icon: 'History', label: 'Bitácora' },
+                                { id: 'reports', icon: 'BarChart3', label: 'Reporte' }
+                            ].map(item => html`
+                                <button onClick=${() => setCurrentView(item.id)} className=${`w-full flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl transition-all ${currentView === item.id ? 'bg-sky-600 text-white shadow-md' : 'text-slate-400 hover:bg-white/5'}`}>
+                                    <${Icon} name=${item.icon} size=${16} /><span className="hidden lg:block font-bold text-[10px]">${item.label}</span>
+                                </button>
+                            `)}
+                        </nav>
+                        <button onClick=${clearDay} className="p-4 mt-auto border-t border-white/5 text-red-400 hover:text-red-300 flex items-center justify-center lg:justify-start gap-2">
+                            <${Icon} name="Trash2" size=${14} />
+                            <span className="hidden lg:block text-[9px] font-black uppercase">Cerrar Día</span>
+                        </button>
+                    </aside>
+
+                    <main className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+                        <header className="h-10 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
+                            <div className="text-[10px] font-bold font-mono text-slate-500">${currentTime.toLocaleTimeString()}</div>
+                            <div className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Valparaíso Terminal</div>
+                        </header>
+
+                        <div className="flex-1 overflow-hidden">
+                            ${currentView === 'pos' && html`
+                                <div className="flex h-full flex-col lg:flex-row animate-fade">
+                                    <div className="flex-1 p-4 lg:p-5 overflow-y-auto custom-scrollbar">
+                                        <div className="flex flex-col md:flex-row justify-between mb-5 gap-3">
+                                            <div className="relative flex-1">
+                                                <${Icon} name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size=${12} />
+                                                <input type="text" placeholder="Buscar..." className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-sky-500/20 outline-none" value=${searchTerm} onChange=${e => setSearchTerm(e.target.value)} />
+                                            </div>
+                                            <div className="flex gap-1 bg-slate-200/50 p-1 rounded-lg">
+                                                ${['Todas', 'Entradas', 'Zoovenir', 'Comida'].map(cat => html`
+                                                    <button key=${cat} onClick=${() => setActiveCategory(cat)} className=${`px-3 py-1 rounded-md text-[9px] font-black uppercase transition-all ${activeCategory === cat ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}>${cat}</button>
+                                                `)}
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                                            ${filteredProducts.map(p => html`
+                                                <button key=${p.id} onClick=${() => addToCart(p)} className="product-card bg-white p-3 rounded-xl border border-slate-200 hover:border-sky-400 flex flex-col justify-between text-left h-32 group">
+                                                    <div className=${`${p.color} w-8 h-8 rounded-lg flex items-center justify-center text-sky-700 shadow-sm`}><${Icon} name=${p.icon} size=${14} /></div>
+                                                    <div>
+                                                        <h3 className="font-bold text-slate-800 text-[10px] leading-tight mb-1 line-clamp-2">${p.name}</h3>
+                                                        <p className="text-sky-600 font-black text-xs">${formatMoney(p.price)}</p>
+                                                    </div>
+                                                </button>
+                                            `)}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="w-full lg:w-[280px] bg-white border-l border-slate-200 flex flex-col shrink-0">
+                                        <div className="p-3 border-b flex justify-between items-center bg-slate-50">
+                                            <h2 className="font-black text-[10px] uppercase text-slate-500">Orden Actual</h2>
+                                            <button onClick=${() => setCart([])} className="text-[9px] font-bold text-red-400 uppercase">Vaciar</button>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                                            ${cart.map(item => html`
+                                                <div key=${item.id} className="bg-slate-50 p-2 rounded-lg border border-slate-100 flex items-center gap-2 animate-fade">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-[10px] font-bold text-slate-800 truncate">${item.name}</p>
+                                                        <p className="text-[9px] text-sky-500 font-black">${formatMoney(item.price)}</p>
+                                                    </div>
+                                                    <div className="flex items-center bg-white rounded border">
+                                                        <button onClick=${() => updateQuantity(item.id, -1)} className="w-5 h-5 flex items-center justify-center text-slate-400"><${Icon} name="Minus" size=${8}/></button>
+                                                        <span className="w-4 text-center text-[9px] font-black">${item.quantity}</span>
+                                                        <button onClick=${() => updateQuantity(item.id, 1)} className="w-5 h-5 flex items-center justify-center text-slate-400"><${Icon} name="Plus" size=${8}/></button>
+                                                    </div>
+                                                    <button onClick=${() => removeFromCart(item.id)} className="text-slate-300 hover:text-red-500"><${Icon} name="Trash2" size=${12}/></button>
+                                                </div>
+                                            `)}
+                                        </div>
+                                        <div className="p-4 bg-slate-900 text-white shadow-2xl">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase">Total</span>
+                                                <span className="text-xl font-black text-sky-400">${formatMoney(total)}</span>
+                                            </div>
+                                            <button onClick=${() => setIsCheckoutOpen(true)} disabled=${cart.length === 0} className="w-full bg-sky-500 py-2.5 rounded-lg font-black text-[10px] uppercase tracking-widest disabled:opacity-20 active:scale-95 transition-all">COBRAR</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `}
+
+                            ${currentView === 'tours' && html`
+                                <div className="flex-1 p-5 overflow-y-auto animate-fade h-full">
+                                    <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                                            <h2 className="text-sm font-black text-slate-800 uppercase mb-4">Programar Tour</h2>
+                                            <div className="grid grid-cols-2 gap-2 mb-5">
+                                                ${GUIDES.map(g => html`
+                                                    <button key=${g} onClick=${() => setSelectedGuide(g)} className=${`p-2.5 rounded-lg text-center font-bold text-[10px] border-2 transition-all ${selectedGuide === g ? 'bg-sky-50 border-sky-500 text-sky-700' : 'bg-slate-50 border-transparent text-slate-400'}`}>${g}</button>
+                                                `)}
+                                            </div>
+                                            <button onClick=${handleCreateTour} disabled=${!selectedGuide} className="w-full bg-emerald-600 text-white py-3 rounded-lg font-black flex items-center justify-center gap-2 uppercase text-[10px] tracking-widest shadow-md"><${Icon} name="MessageCircle" size=${14} /> WhatsApp</button>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <h3 className="font-black uppercase text-[9px] text-slate-400 tracking-widest">Próximos (30m)</h3>
+                                            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                                                ${tourHistory.map(t => html`
+                                                    <div key=${t.id} className="bg-white p-3 rounded-lg border border-slate-200 flex items-center justify-between shadow-sm">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="bg-sky-50 text-sky-600 p-2 rounded-md font-black text-[10px]">${t.startTime} - ${t.endTime}</div>
+                                                            <p className="font-black text-slate-800 text-[10px] uppercase">${t.guide}</p>
+                                                        </div>
+                                                        <${Icon} name="Clock" size=${12} className="text-emerald-500" />
+                                                    </div>
+                                                `)}
+                                                ${tourHistory.length === 0 && html`<div className="p-10 text-center text-slate-300 font-bold uppercase text-[9px] border-2 border-dashed rounded-xl">Sin turnos</div>`}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `}
+
+                            ${currentView === 'history' && html`
+                                <div className="flex-1 p-5 overflow-y-auto animate-fade h-full max-w-xl mx-auto">
+                                    <h2 className="text-sm font-black text-slate-800 uppercase mb-4">Bitácora de Hoy</h2>
+                                    <div className="space-y-2">
+                                        ${salesHistory.map(s => html`
+                                            <div key=${s.id} className="bg-white p-3 rounded-lg border border-slate-200 flex items-center justify-between shadow-sm">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-0.5">
+                                                        <p className="text-[10px] font-black text-slate-800">${s.time} <span class="text-slate-300 ml-1">#${s.id.split('-')[1]}</span></p>
+                                                        <span className=${`text-[7px] font-black px-1.5 py-0.5 rounded uppercase ${s.method === 'efectivo' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>${s.method}</span>
+                                                    </div>
+                                                    <p className="text-[9px] text-slate-400 font-medium italic truncate max-w-[200px]">${s.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</p>
+                                                </div>
+                                                <p className="text-xs font-black text-slate-800 tabular-nums">${formatMoney(s.total)}</p>
+                                            </div>
+                                        `)}
+                                        ${salesHistory.length === 0 && html`<div className="p-10 text-center text-slate-300 font-bold uppercase text-[9px]">Vacío</div>`}
+                                    </div>
+                                </div>
+                            `}
+
+                            ${currentView === 'reports' && html`
+                                <div className="flex-1 p-5 overflow-y-auto animate-fade max-w-2xl mx-auto">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h2 className="text-sm font-black text-slate-800 uppercase">Cierre de Caja</h2>
+                                        <div className="flex bg-slate-200 p-0.5 rounded-md">
+                                            ${['todas', 'efectivo', 'debito'].map(tab => html`
+                                                <button onClick=${() => setActiveReportTab(tab)} className=${`px-3 py-1 rounded text-[8px] font-black uppercase transition-all ${activeReportTab === tab ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}>${tab}</button>
+                                            `)}
+                                        </div>
+                                    </div>
+                                    <div className=${`p-5 rounded-xl text-white shadow-lg flex justify-between items-center mb-4 ${activeReportTab === 'todas' ? 'bg-slate-800' : activeReportTab === 'efectivo' ? 'bg-emerald-600' : 'bg-blue-600'}`}>
+                                        <div>
+                                            <p className="text-[8px] font-bold uppercase opacity-70">Total Recaudado</p>
+                                            <h3 className="text-2xl font-black">${formatMoney(reportsByMethod[activeReportTab].totalRev)}</h3>
+                                        </div>
+                                        <${Icon} name=${activeReportTab === 'efectivo' ? 'Banknote' : 'BarChart3'} size=${20} className="opacity-30" />
+                                    </div>
+                                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                        <table className="w-full text-left text-[9px]">
+                                            <thead className="bg-slate-50 border-b border-slate-100 font-black text-slate-400 uppercase">
+                                                <tr><th className="p-3">Item</th><th className="p-3 text-center">Unds</th><th className="p-3 text-right">Monto</th></tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-50">
+                                                ${reportsByMethod[activeReportTab].items.map(p => html`
+                                                    <tr key=${p.id} className=${p.sold > 0 ? 'bg-white font-bold' : 'opacity-20'}>
+                                                        <td className="p-3">${p.name}</td>
+                                                        <td className="p-3 text-center font-black text-sky-600">${p.sold}</td>
+                                                        <td className="p-3 text-right text-slate-500">${formatMoney(p.rev)}</td>
+                                                    </tr>
+                                                `)}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            `}
+                        </div>
+                    </main>
+                    
+                    <!-- Checkout Modal -->
+                    ${isCheckoutOpen && html`
+                        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                            <div className="bg-white w-full max-w-[280px] rounded-2xl shadow-2xl overflow-hidden animate-fade">
+                                <div className="p-5 text-center bg-slate-900 text-white relative">
+                                    <button onClick=${() => setIsCheckoutOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><${Icon} name="X" size=${14} /></button>
+                                    <p className="text-sky-400 text-[8px] font-black uppercase mb-1">Cobra ahora</p>
+                                    <h3 className="text-3xl font-black">${formatMoney(total)}</h3>
+                                </div>
+                                <div className="p-5 space-y-4 text-center">
+                                    <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
+                                        <button onClick=${() => setPaymentMethod('efectivo')} className=${`flex-1 py-1.5 rounded text-[8px] font-black uppercase ${paymentMethod === 'efectivo' ? 'bg-white shadow-sm' : 'text-slate-400'}`}>Efectivo</button>
+                                        <button onClick=${() => setPaymentMethod('debito')} className=${`flex-1 py-1.5 rounded text-[8px] font-black uppercase ${paymentMethod === 'debito' ? 'bg-white shadow-sm' : 'text-slate-400'}`}>Débito</button>
+                                    </div>
+                                    ${paymentMethod === 'efectivo' && html`
+                                        <div className="space-y-2 animate-fade">
+                                            <input type="number" className="w-full bg-slate-50 border p-2 rounded-lg text-2xl font-black text-center outline-none focus:ring-2 focus:ring-sky-500/20" placeholder="0" value=${cashReceived} onChange=${e => setCashReceived(e.target.value)} autoFocus />
+                                            <div className="p-2 rounded-lg bg-emerald-50 text-center">
+                                                <p className="text-emerald-700 font-bold text-[7px] uppercase">Vuelto</p>
+                                                <p className="text-xl font-black text-emerald-600">${formatMoney(Math.max(0, (parseFloat(cashReceived) || 0) - total))}</p>
+                                            </div>
+                                        </div>
+                                    `}
+                                    <button onClick=${finalizeSale} disabled=${paymentMethod === 'efectivo' && (!cashReceived || parseFloat(cashReceived) < total)} className="w-full bg-sky-600 text-white py-3 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-lg disabled:opacity-20">Finalizar</button>
+                                </div>
+                            </div>
+                        </div>
+                    `}
+                </div>
+            `;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>
+
